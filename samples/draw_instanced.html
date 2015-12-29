@@ -36,10 +36,11 @@
     <div id="info">webgl 2 samples - draw instances</div>
 
     <!-- WebGL 2 shaders -->
-    <script id="vs" type="x-shader/x-vertex">#version 300 es
+    <script id="vs" type="x-shader/x-vertex">
+        #version 300 es
         precision highp float;
         precision highp int;
-        layout(std140,column_major) uniform;
+        layout(std140, column_major) uniform;
         
         uniform transform
         {
@@ -48,6 +49,7 @@
         
         layout(location=0) in vec2 pos;
         flat out int Instance;
+        
         void main()
         {
             Instance = gl_InstanceID;
@@ -70,10 +72,11 @@
 
         void main()
         {
-            Color = Material.Diffuse[Instance%2];
+            Color = Material.Diffuse[Instance % 2];
         }
     </script>
 
+    
     <script>
 
         function createShader(str, type) {
