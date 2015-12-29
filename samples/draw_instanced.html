@@ -1,197 +1,141 @@
 <!DOCTYPE html>
+<!-- Ported from the OpenGL Samples Pack: github.com/g-truc/ogl-samples/blob/master/tests/gl-320-draw-instanced.cpp -->
 <html lang="en">
 
 <head>
-    <title>webgl 2 samples - draw instances</title>
+    <title>WebGL 2 Samples - draw_instanced</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <style>
-
-        body {
-            color: #cccccc;
-            font-family: Monospace;
-            font-size: 13px;
-            text-align: center;
-            background-color: #050505;
-            margin: 0px;
-            overflow: hidden;
-        }
-
-        #info {
-            position: absolute;
-            top: 0px;
-            width: 100%;
-            padding: 5px;
-        }
-
-        a {
-            color: #0080ff;
-        }
-
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <div id="info">WebGL 2 Samples - draw_instanced</div>
 
-    <div id="info">webgl 2 samples - draw instances</div>
-
-    <!-- WebGL 2 shaders -->
     <script id="vs" type="x-shader/x-vertex">
         #version 300 es
         precision highp float;
         precision highp int;
+
         layout(std140, column_major) uniform;
         
-        uniform transform
+        uniform Transform
         {
             mat4 MVP[2];
-        }Transform;
+        } transform;
         
         layout(location=0) in vec2 pos;
-        flat out int Instance;
+        flat out int instance;
         
         void main()
         {
-            Instance = gl_InstanceID;
-            gl_Position = Transform.MVP[gl_InstanceID] * vec4(pos, 0.0, 1.0);
+            instance = gl_InstanceID;
+            gl_Position = transform.MVP[gl_InstanceID] * vec4(pos, 0.0, 1.0);
         }
     </script>
 
-    <script id="fs" type="x-shader/x-fragment">#version 300 es
+    <script id="fs" type="x-shader/x-fragment">
+        #version 300 es
         precision highp float;
         precision highp int;
         layout(std140) uniform;
 
-        uniform material
+        uniform Material
         {
             vec4 Diffuse[2];
-        } Material;
+        } material;
 
-        flat in int Instance;
-        out vec4 Color;
+        flat in int instance;
+        out vec4 color;
 
         void main()
         {
-            Color = Material.Diffuse[Instance % 2];
+            color = material.Diffuse[instance % 2];
         }
     </script>
 
-    
+    <script src="utility.js"></script>
     <script>
+    (function () {
+        'use strict';
 
-        function createShader(str, type) {
-            var shader = gl.createShader(type);
-            gl.shaderSource(shader, str);
-            gl.compileShader(shader);
-            return shader;
-        }
-        function createProgram(vstr, fstr) {
-            var program = gl.createProgram();
-            var vshader = createShader(vstr, gl.VERTEX_SHADER);
-            var fshader = createShader(fstr, gl.FRAGMENT_SHADER);
-            gl.attachShader(program, vshader);
-            gl.attachShader(program, fshader);
-            gl.linkProgram(program);
-
-            //check program
-            var compilationLog = gl.getShaderInfoLog(vshader);
-            console.log(compilationLog);
-            compilationLog = gl.getShaderInfoLog(fshader);
-            console.log(compilationLog);
-
-            return program;
-        }
-
-        // -- INITIALIZE CANVAS
-
-        var canvas;
-        var gl;
-
-        canvas = document.createElement('canvas');
+        var canvas = document.createElement('canvas');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         document.body.appendChild(canvas);
 
-        // -- INITIALIZE WEBGL CONTEXT
-
-        gl = canvas.getContext( 'webgl2', { antialias: false } );
+        var gl = canvas.getContext('webgl2', { antialias: false });
         if (!gl) {
-            gl = canvas.getContext( 'experimental-webgl2', { antialias: false } );
+            gl = canvas.getContext('experimental-webgl2', { antialias: false });
         }
         var isWebGL2 = !!gl;
         if(!isWebGL2)
         {
-            console.log("webgl2 is not available.");
-            document.getElementById("info").innerHTML = "webgl2 is not available.";
+            document.getElementById('info').innerHTML = 'WebGL 2 is not available.  See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">How to get a WebGL 2 implementation</a>';
+            return;
         }
-        else
-        {
-            
-            var vertexShader = document.getElementById( 'vs' ).textContent;
-            var fragmentShader = document.getElementById( 'fs' ).textContent;
-            var program = createProgram(vertexShader,fragmentShader);
-            gl.useProgram(program);
-            
-            var vertexPosBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
-            var vertices = [-0.3, -0.5,
-                            0.3, -0.5,
-                            0.0, 0.5
-                            ];
-            gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
-            
-            
-            program.uniformTransform = gl.getUniformBlockIndex(program, 'transform');
-            program.uniformMaterial = gl.getUniformBlockIndex(program, 'material');
-            gl.uniformBlockBinding(program, program.uniformTransform, 0);
-            gl.uniformBlockBinding(program, program.uniformMaterial, 1);
-            
-            
-            var uniformTransformBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.UNIFORM_BUFFER, uniformTransformBuffer);
-            var transforms = [1.0,0.0,0.0,0.0
-                            ,0.0,1.0,0.0,0.0
-                            ,0.0,0.0,1.0,0.0
-                            ,-0.5,0.0,0.0,1.0,
-                            
-                            1.0,0.0,0.0,0.0
-                            ,0.0,1.0,0.0,0.0
-                            ,0.0,0.0,1.0,0.0
-                            ,0.5,0.0,0.0,1.0
-                            ];
-            gl.bufferData(gl.UNIFORM_BUFFER,new Float32Array(transforms),gl.DYNAMIC_DRAW);
-            gl.bindBuffer(gl.UNIFORM_BUFFER,null);
+        
+        // -- Init program
+        var program = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
+        gl.useProgram(program);
+           
+        // -- Init Buffer
+        var vertexPosBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
+        var vertices = new Float32Array([
+            -0.3, -0.5,
+             0.3, -0.5,
+             0.0,  0.5
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        
+        var uniformTransformLocation = gl.getUniformBlockIndex(program, 'Transform');
+        var uniformMaterialLocation = gl.getUniformBlockIndex(program, 'Material');
+        gl.uniformBlockBinding(program, uniformTransformLocation, 0);
+        gl.uniformBlockBinding(program, uniformMaterialLocation, 1);
+        
+        var uniformTransformBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, uniformTransformBuffer);
+        var transforms = new Float32Array([
+            1.0, 0.0, 0.0, 0.0, 
+            0.0, 1.0, 0.0, 0.0, 
+            0.0, 0.0, 1.0, 0.0, 
+            -0.5, 0.0, 0.0, 1.0,
+                        
+            1.0, 0.0, 0.0, 0.0, 
+            0.0, 1.0, 0.0, 0.0, 
+            0.0, 0.0, 1.0, 0.0, 
+            0.5, 0.0, 0.0, 1.0
+        ]);
+        gl.bufferData(gl.UNIFORM_BUFFER, transforms,gl.DYNAMIC_DRAW);
+        gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
-            var uniformMaterialBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.UNIFORM_BUFFER, uniformMaterialBuffer);
-            var materials = [1.0,0.5,0.0,1.0
-                            ,0.0,0.5,1.0,1.0];
-            gl.bufferData(gl.UNIFORM_BUFFER,new Float32Array(materials),gl.STATIC_DRAW);
-            gl.bindBuffer(gl.UNIFORM_BUFFER,null);
-            
+        var uniformMaterialBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, uniformMaterialBuffer);
+        var materials = new Float32Array([
+            1.0, 0.5, 0.0, 1.0,
+            0.0, 0.5, 1.0, 1.0
+        ]);
+        gl.bufferData(gl.UNIFORM_BUFFER, new Float32Array(materials), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
+        // -- Render
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformTransformBuffer);
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformMaterialBuffer);
+        
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, 2);
 
-            
-
-            program.vertexPosAttrib = gl.getAttribLocation(program, 'pos');
-            gl.enableVertexAttribArray(program.vertexPosAttrib);
-
-            
-            
-            
-            // Render
-            gl.clearColor(0,0,0,1);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformTransformBuffer);
-            gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformMaterialBuffer);
-            
-            gl.vertexAttribPointer(program.vertexPosAttrib, 2, gl.FLOAT, false, 0, 0);
-            gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, 2);
-        }
-
+        // -- Delete WebGL resources
+        gl.deleteBuffer(vertexPosBuffer);
+        gl.deleteBuffer(uniformTransformBuffer);
+        gl.deleteBuffer(uniformMaterialBuffer);
+        gl.deleteProgram(program);
+    })();
     </script>
-
 </body>
-
 </html>
