@@ -11,7 +11,10 @@
 
 <body>
     <div id="info">WebGL 2 Samples - texture_etc2_eac</div>
-
+    <p id="description">
+        The ETC2-EAC compressed texture is created by calling compressedTexImage2D.
+    </p>
+    
     <!-- WebGL 2 shaders -->
     <script id="vs" type="x-shader/x-vertex">
         #version 300 es
@@ -61,8 +64,7 @@
 
         var gl = canvas.getContext( 'webgl2', { antialias: false } );
         var isWebGL2 = !!gl;
-        if(!isWebGL2)
-        {
+        if(!isWebGL2) {
             document.getElementById('info').innerHTML = 'WebGL 2 is not available.  See <a href="https://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">How to get a WebGL 2 implementation</a>';
             return;
         }
